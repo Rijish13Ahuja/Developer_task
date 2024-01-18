@@ -1,0 +1,135 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include<bits/stdc++.h>
+
+using namespace std;
+
+struct Product {
+    string name;
+    double price;
+    int quantity;
+    bool isGiftWrapped;
+};
+
+struct DiscountRule {
+    string name;
+    double discount;
+    int threshold;
+};
+
+double calculateTotalCost(const vector<Product>& cart) {
+    double total = 0;
+    for (const auto& product : cart) {
+        total += product.price * product.quantity;
+    }
+    return total;
+}
+
+double applyDiscounts(double total, const vector<DiscountRule>& discounts, const vector<Product>& cart) {
+    double maxDiscount = 0;
+    string appliedDiscount;
+
+    for (const auto& discount : discounts) {
+        if (discount.name == "flat_10_discount" && total > 200) {
+            double discountAmount = min(discount.discount, total);
+            total -= discountAmount;
+            if (discountAmount > maxDiscount) {
+                maxDiscount = discountAmount;
+                appliedDiscount = discount.name;
+            }
+        } else if (discount.name == "bulk_5_discount" || discount.name == "bulk_10_discount") {
+            for (const auto& product : cart) {
+                if (product.quantity > discount.threshold) {
+                    double discountAmount = product.price * product.quantity * discount.discount / 100;
+                    total -= discountAmount;
+                    if (discountAmount > maxDiscount) {
+                        maxDiscount = discountAmount;
+                        appliedDiscount = discount.name;
+                    }
+                }
+            }
+        } else if (discount.name == "tiered_50_discount") {
+            int totalQuantity = 0;
+            for (const auto& product : cart) {
+                totalQuantity += product.quantity;
+            }
+
+            if (totalQuantity > 30) {
+                for (const auto& product : cart) {
+                    if (product.quantity > 15) {
+                        double discountAmount = product.price * product.quantity * 0.5;
+                        total -= discountAmount;
+                        if (discountAmount > maxDiscount) {
+                            maxDiscount = discountAmount;
+                            appliedDiscount = discount.name;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    cout << "Discount applied: " << appliedDiscount << " - $" << maxDiscount << endl;
+    return total;
+}
+
+double calculateShippingFee(const vector<Product>& cart) {
+    int totalUnits = 0;
+    for (const auto& product : cart) {
+        totalUnits += product.quantity;
+    }
+    return ceil((double)totalUnits / 10) * 5;
+}
+
+double calculateGiftWrapFee(const vector<Product>& cart) {
+    double totalFee = 0;
+    for (const auto& product : cart) {
+        if (product.isGiftWrapped) {
+            totalFee += product.quantity;
+        }
+    }
+    return totalFee;
+}
+
+int main() {
+    vector<Product> products = {
+        {"Product A", 20, 0, false},
+        {"Product B", 40, 0, false},
+        {"Product C", 50, 0, false}
+    };
+
+    vector<DiscountRule> discounts = {
+        {"flat_10_discount", 10, 0},
+        {"bulk_5_discount", 5, 10},
+        {"bulk_10_discount", 10, 20},
+        {"tiered_50_discount", 50, 0}
+    };
+
+    for (auto& product : products) {
+        cout << "Enter the quantity of " << product.name << ": ";
+        cin >> product.quantity;
+
+        cout << "Is " << product.name << " gift-wrapped? (1 for yes, 0 for no): ";
+        cin >> product.isGiftWrapped;
+    }
+
+    double subtotal = calculateTotalCost(products);
+    double totalAfterDiscounts = applyDiscounts(subtotal, discounts, products);
+    double shippingFee = calculateShippingFee(products);
+    double giftWrapFee = calculateGiftWrapFee(products);
+    double total = totalAfterDiscounts + shippingFee + giftWrapFee;
+
+    cout << "\n===== Order Summary =====" << endl;
+    for (const auto& product : products) {
+        if (product.quantity > 0) {
+            cout << product.name << " - Quantity: " << product.quantity << ", Total: $" << product.price * product.quantity << endl;
+        }
+    }
+    cout << "Subtotal: $" << subtotal << endl;
+    cout << "Shipping Fee: $" << shippingFee << endl;
+    cout << "Gift Wrap Fee: $" << giftWrapFee << endl;
+    cout << "Total: $" << total << endl;
+
+    return 0;
+}
