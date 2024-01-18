@@ -1,0 +1,136 @@
+const readline = require('readline');
+
+class Product {
+  constructor(name, price, quantity, isGiftWrapped) {
+    this.name = name;
+    this.price = price;
+    this.quantity = quantity;
+    this.isGiftWrapped = isGiftWrapped;
+  }
+}
+
+class DiscountRule {
+  constructor(name, discount, threshold) {
+    this.name = name;
+    this.discount = discount;
+    this.threshold = threshold;
+  }
+}
+
+function calculateTotalCost(cart) {
+  return cart.reduce((total, product) => total + product.price * product.quantity, 0);
+}
+
+function applyDiscounts(total, discounts, cart) {
+  let maxDiscount = 0;
+  let appliedDiscount = "";
+
+  discounts.forEach((discount) => {
+    if (discount.name === "flat_10_discount" && total > 200) {
+      const discountAmount = Math.min(discount.discount, total);
+      total -= discountAmount;
+      if (discountAmount > maxDiscount) {
+        maxDiscount = discountAmount;
+        appliedDiscount = discount.name;
+      }
+    } else if (discount.name === "bulk_5_discount" || discount.name === "bulk_10_discount") {
+      cart.forEach((product) => {
+        if (product.quantity > discount.threshold) {
+          const discountAmount = (product.price * product.quantity * discount.discount) / 100;
+          total -= discountAmount;
+          if (discountAmount > maxDiscount) {
+            maxDiscount = discountAmount;
+            appliedDiscount = discount.name;
+          }
+        }
+      });
+    } else if (discount.name === "tiered_50_discount") {
+      const totalQuantity = cart.reduce((totalQty, product) => totalQty + product.quantity, 0);
+      if (totalQuantity > 30) {
+        cart.forEach((product) => {
+          if (product.quantity > 15) {
+            const discountAmount = (product.price * product.quantity * 0.5);
+            total -= discountAmount;
+            if (discountAmount > maxDiscount) {
+              maxDiscount = discountAmount;
+              appliedDiscount = discount.name;
+            }
+          }
+        });
+      }
+    }
+  });
+
+  console.log(Discount applied: ${appliedDiscount} - $${maxDiscount});
+  return total;
+}
+
+function calculateShippingFee(cart) {
+  const totalUnits = cart.reduce((totalQty, product) => totalQty + product.quantity, 0);
+  return Math.ceil(totalUnits / 10) * 5;
+}
+
+function calculateGiftWrapFee(cart) {
+  return cart.reduce((totalFee, product) => (product.isGiftWrapped ? totalFee + product.quantity : totalFee), 0);
+}
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+function main() {
+  const products = [
+    new Product("Product A", 20, 0, false),
+    new Product("Product B", 40, 0, false),
+    new Product("Product C", 50, 0, false),
+  ];
+
+  const discounts = [
+    new DiscountRule("flat_10_discount", 10, 0),
+    new DiscountRule("bulk_5_discount", 5, 10),
+    new DiscountRule("bulk_10_discount", 10, 20),
+    new DiscountRule("tiered_50_discount", 50, 0),
+  ];
+
+  let productIndex = 0;
+
+  function promptUser() {
+    if (productIndex < products.length) {
+      rl.question(`Enter the quantity of ${products[productIndex].name}: `, (quantity) => {
+        products[productIndex].quantity = parseInt(quantity);
+        rl.question(`Is ${products[productIndex].name} gift-wrapped? (yes/no): `, (answer) => {
+          products[productIndex].isGiftWrapped = answer.toLowerCase() === 'yes';
+          productIndex++;
+          promptUser();
+        });
+      });
+    } else {
+      rl.close();
+      processOrder();
+    }
+  }
+
+  function processOrder() {
+    const subtotal = calculateTotalCost(products);
+    const totalAfterDiscounts = applyDiscounts(subtotal, discounts, products);
+    const shippingFee = calculateShippingFee(products);
+    const giftWrapFee = calculateGiftWrapFee(products);
+    const total = totalAfterDiscounts + shippingFee + giftWrapFee;
+
+    console.log("\n===== Order Summary =====");
+    products.forEach((product) => {
+      if (product.quantity > 0) {
+        console.log(${product.name} - Quantity: ${product.quantity}, Total: $${product.price * product.quantity});
+      }
+    });
+    console.log(Subtotal: $${subtotal});
+    console.log(Shipping Fee: $${shippingFee});
+    console.log(Gift Wrap Fee: $${giftWrapFee});
+    console.log(Total: $${total});
+  }
+
+  promptUser();
+}
+
+main();
