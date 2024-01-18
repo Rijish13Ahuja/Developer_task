@@ -17,4 +17,4 @@ Fees:
 Gift wrap fee: $1 per unit.
 Shipping fee: 10 units can be packed in one package, and the shipping fee for each package is $5.
 
-# The codes can be run directly on an online compiler by giving input from the user
+## The codes can be run directly on an online compiler by taking input from the user
